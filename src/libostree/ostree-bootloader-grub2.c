@@ -299,8 +299,25 @@ _ostree_bootloader_grub2_write_config (OstreeBootloader      *bootloader,
   g_autofree char *bootversion_str = g_strdup_printf ("%u", (guint)bootversion);
   g_autoptr(GFile) config_path_efi_dir = NULL;
   g_autofree char *grub2_mkconfig_chroot = NULL;
+  gboolean use_grub2_mkconfig = FALSE;
+  const gchar *grub_exec = NULL;
 
-  if (ostree_sysroot_get_booted_deployment (self->sysroot) == NULL
+#ifdef USE_GRUB2_MKCONFIG
+  use_grub2_mkconfig = TRUE;
+#endif
+  /* Autotests can set this envvar to select which code path to test, useful for OS installers as well */
+  grub_exec = g_getenv ("OSTREE_GRUB2_EXEC");
+  if (grub_exec)
+    {
+      if (g_str_has_suffix(grub_exec, GRUB2_MKCONFIG))
+        use_grub2_mkconfig = TRUE;
+      else
+        use_grub2_mkconfig = FALSE;
+    }
+  if (!grub_exec)
+    grub_exec = use_grub2_mkconfig ? GRUB2_MKCONFIG : LIBEXECDIR "/ostree-grub-generator";
+
+  if (use_grub2_mkconfig && ostree_sysroot_get_booted_deployment (self->sysroot) == NULL
       && g_file_has_parent (self->sysroot->path, NULL))
     {
       g_autoptr(GPtrArray) deployments = NULL;
@@ -361,7 +378,7 @@ _ostree_bootloader_grub2_write_config (OstreeBootloader      *bootloader,
      Upstream is fixed though.
   */
   proc = g_subprocess_launcher_spawn (launcher, error,
-                                      "grub2-mkconfig", "-o",
+                                      grub_exec, "-o",
                                       gs_file_get_path_cached (new_config_path),
                                       NULL);
 
