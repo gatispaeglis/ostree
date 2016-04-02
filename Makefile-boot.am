@@ -39,7 +39,8 @@ systemdsystemunit_DATA = src/boot/ostree-prepare-root.service \
 	src/boot/ostree-remount.service
 endif
 
-if BUILDOPT_GRUB2_MKCONFIG
+if !BUILDOPT_BUILTIN_GRUB2_MKCONFIG
+# We're using the system grub2-mkconfig generator
 libexec_SCRIPTS = src/boot/grub2/grub2-15_ostree
 install-grub2-config-hook:
 	mkdir -p $(DESTDIR)$(grub2configdir)
@@ -47,6 +48,7 @@ install-grub2-config-hook:
 grub2configdir = $(sysconfdir)/grub.d
 INSTALL_DATA_HOOKS += install-grub2-config-hook
 else
+# We're using our internal generator
 libexec_SCRIPTS = src/boot/grub2/ostree-grub-generator
 endif
 

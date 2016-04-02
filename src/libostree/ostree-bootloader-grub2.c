@@ -299,25 +299,25 @@ _ostree_bootloader_grub2_write_config (OstreeBootloader      *bootloader,
   g_autofree char *bootversion_str = g_strdup_printf ("%u", (guint)bootversion);
   g_autoptr(GFile) config_path_efi_dir = NULL;
   g_autofree char *grub2_mkconfig_chroot = NULL;
-  gboolean use_grub2_mkconfig = FALSE;
+  gboolean use_system_grub2_mkconfig = TRUE;
   const gchar *grub_exec = NULL;
 
-#ifdef USE_GRUB2_MKCONFIG
-  use_grub2_mkconfig = TRUE;
+#ifdef USE_BUILTIN_GRUB2_MKCONFIG
+  use_system_grub2_mkconfig = FALSE;
 #endif
   /* Autotests can set this envvar to select which code path to test, useful for OS installers as well */
   grub_exec = g_getenv ("OSTREE_GRUB2_EXEC");
   if (grub_exec)
     {
-      if (g_str_has_suffix(grub_exec, GRUB2_MKCONFIG))
-        use_grub2_mkconfig = TRUE;
+      if (g_str_has_suffix (grub_exec, GRUB2_MKCONFIG_PATH))
+        use_system_grub2_mkconfig = TRUE;
       else
-        use_grub2_mkconfig = FALSE;
+        use_system_grub2_mkconfig = FALSE;
     }
-  if (!grub_exec)
-    grub_exec = use_grub2_mkconfig ? GRUB2_MKCONFIG : LIBEXECDIR "/ostree-grub-generator";
+  else
+    grub_exec = use_system_grub2_mkconfig ? GRUB2_MKCONFIG_PATH : LIBEXECDIR "/ostree-grub-generator";
 
-  if (use_grub2_mkconfig && ostree_sysroot_get_booted_deployment (self->sysroot) == NULL
+  if (use_system_grub2_mkconfig && ostree_sysroot_get_booted_deployment (self->sysroot) == NULL
       && g_file_has_parent (self->sysroot->path, NULL))
     {
       g_autoptr(GPtrArray) deployments = NULL;
@@ -335,6 +335,9 @@ _ostree_bootloader_grub2_write_config (OstreeBootloader      *bootloader,
        *
        * In the case of an installer, use the first deployment root (which
        * will most likely be the only one.
+       *
+       * This all only applies if we're not using the builtin
+       * generator, which handles being run outside of the root.
        */
       tool_deployment_root = ostree_sysroot_get_deployment_directory (self->sysroot, tool_deployment);
       grub2_mkconfig_chroot = g_file_get_path (tool_deployment_root);
