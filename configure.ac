@@ -294,6 +294,13 @@ AS_IF([test x$with_grub2_mkconfig_path = x], [
 ],[GRUB2_MKCONFIG=$with_grub2_mkconfig_path])
 AC_DEFINE_UNQUOTED([GRUB2_MKCONFIG_PATH], ["$GRUB2_MKCONFIG"], [The system grub2-mkconfig executible name])
 
+AC_ARG_WITH(static-prepare-root,
+            AS_HELP_STRING([--with-static-prepare-root],
+                           [Build static version of the 'ostree-prepare-root' binary. Useful when
+                            using 'ostree-prepare-root' as the init (PID 1) process. (default: no)]),,
+              [with_static_prepare_root=no])
+AM_CONDITIONAL(BUILDOPT_STATIC_PREPARE_ROOT, test x$with_static_prepare_root = xyes)
+
 dnl for tests
 AS_IF([test "x$found_introspection" = xyes], [
   AC_PATH_PROG(GJS, [gjs])
@@ -327,6 +334,7 @@ echo "
     libarchive (parse tar files directly):        $with_libarchive
     static deltas:                                yes (always enabled now)
     O_TMPFILE:                                    $enable_otmpfile
+    static ostree-prepare-root                    $with_static_prepare_root
     man pages (xsltproc):                         $enable_man
     api docs (gtk-doc):                           $enable_gtk_doc
     gjs-based tests:                              $have_gjs
