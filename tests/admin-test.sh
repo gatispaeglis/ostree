@@ -18,7 +18,7 @@
 
 set -euo pipefail
 
-echo "1..16"
+echo "1..17"
 
 function validate_bootloader() {
     cd ${test_tmpdir};
@@ -233,3 +233,16 @@ curr_rev=$(${CMD_PREFIX} ostree rev-parse --repo=sysroot/ostree/repo testos/buil
 assert_streq ${curr_rev} ${head_rev}
 
 echo "ok upgrade with and without override-commit"
+
+cd ${test_tmpdir}/osdata/boot
+rm -f initramfs* vmlinuz*
+echo "a kernel" > vmlinuz-3.6.0
+bootcsum=$(cat vmlinuz-3.6.0 | sha256sum | cut -f 1 -d ' ')
+mv vmlinuz-3.6.0 vmlinuz-3.6.0-${bootcsum}
+cd -
+${CMD_PREFIX} ostree --repo=${test_tmpdir}/testos-repo commit --tree=dir=${test_tmpdir}/osdata/ -b testos/buildmaster/x86_64-runtime -s "no initramfs in bootdir"
+${CMD_PREFIX} ostree admin upgrade --os=testos
+assert_file_has_content sysroot/boot/loader/entries/ostree-testos-0.conf 'init='
+assert_not_file_has_content sysroot/boot/loader/entries/ostree-testos-0.conf 'initrd'
+
+echo "ok bootdir with no initramfs"
